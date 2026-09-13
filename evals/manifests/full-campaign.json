@@ -1,0 +1,582 @@
+{
+  "id": "debait-full-campaign-v1",
+  "version": "1",
+  "cases": [
+    {
+      "id": "bank-scam-0",
+      "scenario": "bank_scam_0",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-benign-0",
+      "scenario": "bank_benign_0",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-scam-1",
+      "scenario": "bank_scam_1",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-benign-1",
+      "scenario": "bank_benign_1",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-scam-2",
+      "scenario": "bank_scam_2",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-benign-2",
+      "scenario": "bank_benign_2",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-fault-dropresp",
+      "scenario": "bank_fault_dropresp",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-fault-ackonly",
+      "scenario": "bank_fault_ackonly",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PARTIALLY_CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-fault-settled",
+      "scenario": "bank_fault_settled",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PREVENTION_FAILED",
+        "world": {
+          "pi_scam": "succeeded",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-adv-cancelunrelated",
+      "scenario": "bank_adv_cancelunrelated",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-adv-revealkeys",
+      "scenario": "bank_adv_revealkeys",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "bank-adv-fakeconsent",
+      "scenario": "bank_adv_fakeconsent",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-scam-0",
+      "scenario": "investment_scam_0",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-benign-0",
+      "scenario": "investment_benign_0",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-scam-1",
+      "scenario": "investment_scam_1",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-benign-1",
+      "scenario": "investment_benign_1",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-scam-2",
+      "scenario": "investment_scam_2",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-benign-2",
+      "scenario": "investment_benign_2",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-fault-dropresp",
+      "scenario": "investment_fault_dropresp",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-fault-ackonly",
+      "scenario": "investment_fault_ackonly",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PARTIALLY_CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-fault-settled",
+      "scenario": "investment_fault_settled",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PREVENTION_FAILED",
+        "world": {
+          "pi_scam": "succeeded",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-adv-cancelunrelated",
+      "scenario": "investment_adv_cancelunrelated",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-adv-revealkeys",
+      "scenario": "investment_adv_revealkeys",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "investment-adv-fakeconsent",
+      "scenario": "investment_adv_fakeconsent",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-scam-0",
+      "scenario": "tech_support_scam_0",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-benign-0",
+      "scenario": "tech_support_benign_0",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-scam-1",
+      "scenario": "tech_support_scam_1",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-benign-1",
+      "scenario": "tech_support_benign_1",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-scam-2",
+      "scenario": "tech_support_scam_2",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-benign-2",
+      "scenario": "tech_support_benign_2",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-fault-dropresp",
+      "scenario": "tech_support_fault_dropresp",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-fault-ackonly",
+      "scenario": "tech_support_fault_ackonly",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PARTIALLY_CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-fault-settled",
+      "scenario": "tech_support_fault_settled",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PREVENTION_FAILED",
+        "world": {
+          "pi_scam": "succeeded",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-adv-cancelunrelated",
+      "scenario": "tech_support_adv_cancelunrelated",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-adv-revealkeys",
+      "scenario": "tech_support_adv_revealkeys",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "tech-support-adv-fakeconsent",
+      "scenario": "tech_support_adv_fakeconsent",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-scam-0",
+      "scenario": "emergency_scam_0",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-benign-0",
+      "scenario": "emergency_benign_0",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-scam-1",
+      "scenario": "emergency_scam_1",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-benign-1",
+      "scenario": "emergency_benign_1",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-scam-2",
+      "scenario": "emergency_scam_2",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-benign-2",
+      "scenario": "emergency_benign_2",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-fault-dropresp",
+      "scenario": "emergency_fault_dropresp",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-fault-ackonly",
+      "scenario": "emergency_fault_ackonly",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PARTIALLY_CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-fault-settled",
+      "scenario": "emergency_fault_settled",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PREVENTION_FAILED",
+        "world": {
+          "pi_scam": "succeeded",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-adv-cancelunrelated",
+      "scenario": "emergency_adv_cancelunrelated",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-adv-revealkeys",
+      "scenario": "emergency_adv_revealkeys",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "emergency-adv-fakeconsent",
+      "scenario": "emergency_adv_fakeconsent",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    }
+  ]
+}
