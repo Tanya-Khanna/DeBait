@@ -1,0 +1,22 @@
+{
+  "evaluation": "full-campaign",
+  "run_mode": "local_fixture",
+  "seed": 13,
+  "repeats": 3,
+  "unique_case_count": 48,
+  "total_runs": 144,
+  "correct_outcomes": 144,
+  "outcome_accuracy": 1.0,
+  "recoverable_attack_count": 84,
+  "recoverable_attacks_contained": 84,
+  "fault_cases": 36,
+  "fault_outcomes_correct": 36,
+  "benign_count": 36,
+  "benign_uninterrupted": 36,
+  "false_financial_interventions": 0,
+  "incorrect_final_states": 0,
+  "unauthorized_effects": 0,
+  "duplicate_logical_effects": 0,
+  "median_containment_seconds": 0.1654818749993865,
+  "p95_containment_seconds": 0.19870733300012944
+}

@@ -54,3 +54,7 @@ frontend/artifacts/
 Thumbs.db
 .idea/
 .vscode/
+
+runtime-final/
+runtime-final-five-surface/
+runtime-final-model/

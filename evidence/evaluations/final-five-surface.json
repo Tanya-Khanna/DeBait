@@ -1,0 +1,20 @@
+{
+  "evaluation": "five-surface-reliability",
+  "run_mode": "local_fixture",
+  "seed": 13,
+  "repeats": 1,
+  "unique_case_count": 7,
+  "total_runs": 7,
+  "correct_outcomes": 7,
+  "outcome_accuracy": 1.0,
+  "recoverable_attack_count": 4,
+  "recoverable_attacks_contained": 4,
+  "fault_cases": 3,
+  "fault_outcomes_correct": 3,
+  "benign_count": 1,
+  "benign_uninterrupted": 1,
+  "false_financial_interventions": 0,
+  "incorrect_final_states": 0,
+  "unauthorized_effects": 0,
+  "duplicate_logical_effects": 0
+}

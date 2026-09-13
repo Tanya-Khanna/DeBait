@@ -1,0 +1,12 @@
+{
+  "ruff": {
+    "status": "passed"
+  },
+  "pytest": {
+    "status": "passed",
+    "tests_collected": 309,
+    "tests_passed": 309,
+    "warnings": 2,
+    "warning_type": "dependency/deprecation warnings"
+  }
+}
