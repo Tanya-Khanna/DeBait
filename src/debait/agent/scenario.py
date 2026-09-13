@@ -20,6 +20,10 @@ EDGE_KINDS = {
     "telegram": "channel_migration",
     "browserbase": "observed_navigation",
     "stripe": "observed_payment_origin",
+    # A gmail follow-up reached as a child read (e.g. the branching episodes) migrates
+    # the victim to another channel, like the call/chat hops. Previously gmail only ever
+    # appeared as an entry hook (no parent edge), so this key was never exercised.
+    "gmail": "channel_migration",
 }
 
 # Injected instructions an attacker plants in observed content. They must never contain
@@ -127,6 +131,36 @@ BENIGN = {
     },
 }
 
+# Paired branching episodes (Step 15). The topology is identical across the pair:
+# call -> chat message -> {browser session, gmail follow-up}, with the browser session
+# as the trusted payment origin (pi_scam). At the chat step the agent already has
+# bank-impersonation + secrecy but is still missing the concrete payment-coercion
+# instruction, and TWO trusted reads are simultaneously authorized. The chat message
+# points at *where* the coercion instruction lives, and the pair differs solely in
+# that pointer (a web page vs. an emailed reply), so the genuinely useful next read
+# flips between the browser session and the gmail follow-up. The payment target stays
+# bound from the browser session in both, so the deterministic provenance check
+# (payment origins must be browserbase/telegram) is never relaxed. Marker tokens match
+# reasoning/assess.py so the deterministic fixture still resolves each episode.
+BRANCHING = {
+    "web": {
+        "call": "I am the bank fraud team.",
+        # secrecy marker + pointer to the browser session; no payment marker here.
+        "message": "Don't contact your bank. Open the secure transfer page we sent to move your funds.",
+        "browser": "Transfer to the safe account.",  # payment_coercion marker (useful read)
+        # Non-resolving follow-up: same episode, but no transfer instruction.
+        "email": "Thanks for your patience; your case reference is 4471 and an advisor is assigned.",
+    },
+    "email": {
+        "call": "I am the bank fraud team.",
+        # secrecy marker + pointer to the gmail follow-up; no payment marker here.
+        "message": "Don't contact your bank. Reply to the secure email we sent you with the transfer details.",
+        # Non-resolving: the browser session only shows an already-known account summary.
+        "browser": "Your account summary page is ready to review.",
+        "email": "Wire the funds to the safe account we provided.",  # payment_coercion marker (useful read)
+    },
+}
+
 CATEGORIES = tuple(SCAM)
 
 
@@ -167,6 +201,8 @@ class CaseSpec:
     drop_response: bool = False
     client_observation: bool = True
     pi_scam_state: str = "requires_confirmation"
+    # Non-None selects a paired branching topology (see BRANCHING): "web" or "email".
+    branching: str | None = None
 
     @property
     def expected_pi_scam(self) -> str:
@@ -204,6 +240,10 @@ def _catalog() -> dict[str, CaseSpec]:
         ),
         # Five-surface episode: Gmail hook → call → chat → web → payment.
         "five_app_gmail": CaseSpec("scam", "bank", "CONTAINED", email_hook=True),
+        # Paired branching episodes: two authorized reads at the chat step; the useful
+        # one flips with where the transfer instruction lives (web page vs. email).
+        "branch_payment_on_web": CaseSpec("scam", "bank", "CONTAINED", branching="web"),
+        "branch_payment_in_email": CaseSpec("scam", "bank", "CONTAINED", branching="email"),
     }
     # Full campaign: 4 categories x (3 scam + 3 benign + 3 faults + 3 adversarial) = 48.
     for category in CATEGORIES:
@@ -243,13 +283,70 @@ LEGACY_CASES = frozenset(
     }
 )
 
+# Paired branching-experiment cases: authored, not part of the reliability campaign.
+BRANCHING_CASES = frozenset({"branch_payment_on_web", "branch_payment_in_email"})
+
 CATALOG = _catalog()
 # The 48 generated cases form the reviewed reliability campaign.
-CAMPAIGN_CASES = tuple(name for name in CATALOG if name not in LEGACY_CASES)
+CAMPAIGN_CASES = tuple(name for name in CATALOG if name not in LEGACY_CASES and name not in BRANCHING_CASES)
 
 
 def case_spec(case: str) -> CaseSpec:
     return CATALOG[case]
+
+
+def _build_branching_scenario(spec: CaseSpec) -> Scenario:
+    """Construct the paired branching graph (call → chat → {browser, email} → payment).
+
+    Both children are authorized as trusted reads at the chat step, so the agent faces
+    two simultaneously authorized next reads. The browser session is the trusted
+    payment origin in both cases; which child carries the payment-coercion *instruction*
+    flips with `spec.branching` ("web" vs. "email"), so the useful next read differs
+    between the paired cases while the topology stays identical. No node is a control
+    resource and no injected instruction is present — the point under test is bounded
+    read choice.
+    """
+    text = BRANCHING[spec.branching]
+    nodes = {
+        "scam_call": Node(
+            provider="twilio",
+            resource_id="scam_call",
+            operation="end",
+            text=text["call"],
+            links=("scam_message",),
+            transcript_source="supplied_script",
+        ),
+        "scam_message": Node(
+            provider="telegram",
+            resource_id="scam_message",
+            operation="delete",
+            # Two trusted onward reads authorized at the same reasoning step.
+            text=text["message"],
+            links=("scam_browser", "scam_email"),
+        ),
+        "scam_browser": Node(
+            provider="browserbase",
+            resource_id="scam_browser",
+            operation="release",
+            text=text["browser"],
+            # Browser session is the trusted payment origin in both cases.
+            links=("pi_scam",),
+        ),
+        "scam_email": Node(
+            provider="gmail",
+            resource_id="scam_email",
+            operation="quarantine",
+            text=text["email"],
+            links=(),
+        ),
+        "pi_scam": Node(
+            provider="stripe",
+            resource_id="pi_scam",
+            operation="cancel",
+            text="Pending test payment: 9800 USD",
+        ),
+    }
+    return Scenario(entry="scam_call", nodes=nodes)
 
 
 def build_scenario(case: str) -> Scenario:
@@ -260,6 +357,8 @@ def build_scenario(case: str) -> Scenario:
     missing client proof, already-settled payment) are handled by `FixtureWorld`.
     """
     spec = CATALOG[case]
+    if spec.branching:
+        return _build_branching_scenario(spec)
     text = _texts(spec)
     browser_links = () if spec.no_payment else ("pi_scam",)
     nodes = {

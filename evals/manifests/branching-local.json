@@ -1,0 +1,34 @@
+{
+  "id": "debait-branching-local-v1",
+  "version": "1",
+  "cases": [
+    {
+      "id": "branch-payment-on-web",
+      "scenario": "branch_payment_on_web",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation",
+          "scam_browser": "terminated",
+          "scam_email": "quarantined"
+        }
+      }
+    },
+    {
+      "id": "branch-payment-in-email",
+      "scenario": "branch_payment_in_email",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation",
+          "scam_browser": "terminated",
+          "scam_email": "quarantined"
+        }
+      }
+    }
+  ]
+}
