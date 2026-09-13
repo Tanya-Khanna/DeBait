@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     browserbase_key: SecretStr | None = None
     browserbase_project_id: str | None = None
     gmail_token: SecretStr | None = None
+    gmail_client_id: str | None = None
+    gmail_client_secret: SecretStr | None = None
+    gmail_refresh_token: SecretStr | None = None
     twilio_token: SecretStr | None = None
     callback_base_url: str | None = None
     openai_key: SecretStr | None = None

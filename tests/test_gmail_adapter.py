@@ -200,3 +200,122 @@ async def test_smoke_refuses_when_no_scam_marker():
     fake.meta["m_scam"] = ("Bank <b@x>", "Monthly statement", "your statement is ready")
     with pytest.raises(ValueError, match="scam-marked"):
         await run_gmail_smoke(TOKEN, run_id="gmail-smoke-2", transport=fake.transport())
+
+
+def test_build_authorization_url():
+    from debait.driver.gmail_auth import GMAIL_MODIFY_SCOPE, build_authorization_url
+
+    url = build_authorization_url("my-client-id")
+    assert "client_id=my-client-id" in url
+    assert "access_type=offline" in url
+    assert "prompt=consent" in url
+    assert "response_type=code" in url
+    assert GMAIL_MODIFY_SCOPE in url.replace("%3A", ":").replace("%2F", "/")
+
+
+@pytest.mark.asyncio
+async def test_exchange_code_for_tokens():
+    from debait.driver.gmail_auth import exchange_code_for_tokens
+
+    def handler(request):
+        assert request.method == "POST"
+        assert request.url.path == "/token"
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "ya29.test-access-token",
+                "refresh_token": "1//test-refresh-token",
+                "expires_in": 3600,
+                "token_type": "Bearer",
+                "scope": "https://www.googleapis.com/auth/gmail.modify",
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    tokens = await exchange_code_for_tokens(
+        "test-id",
+        SecretStr("test-secret"),
+        "test-code",
+        transport=transport,
+    )
+    assert tokens["access_token"] == "ya29.test-access-token"
+    assert tokens["refresh_token"] == "1//test-refresh-token"
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token():
+    from debait.driver.gmail_auth import refresh_access_token
+
+    def handler(request):
+        assert request.method == "POST"
+        assert request.url.path == "/token"
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "ya29.fresh-access-token",
+                "expires_in": 3600,
+                "token_type": "Bearer",
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    tokens = await refresh_access_token(
+        "test-id",
+        SecretStr("test-secret"),
+        SecretStr("test-refresh-token"),
+        transport=transport,
+    )
+    assert tokens["access_token"] == "ya29.fresh-access-token"
+
+
+@pytest.mark.asyncio
+async def test_verify_gmail_read_and_scope():
+    from debait.driver.gmail_auth import verify_gmail_read_and_scope
+
+    def handler(request):
+        if request.url.path.endswith("/profile"):
+            return httpx.Response(200, json={"emailAddress": "demo@gmail.com", "messagesTotal": 42})
+        if request.url.path.endswith("/labels"):
+            return httpx.Response(
+                200,
+                json={
+                    "labels": [
+                        {"id": "INBOX", "name": "INBOX"},
+                        {"id": "Label_12345", "name": "DeBait/Quarantined"},
+                    ]
+                },
+            )
+        raise AssertionError(f"Unexpected path: {request.url.path}")
+
+    transport = httpx.MockTransport(handler)
+    report = await verify_gmail_read_and_scope(TOKEN, transport=transport)
+    assert report["email"] == "demo@gmail.com"
+    assert report["quarantine_label_id"] == "Label_12345"
+    assert report["verified"] is True
+
+
+def test_update_local_env(tmp_path):
+    from debait.driver.gmail_auth import update_local_env
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("DEBAIT_MODE=local\n# Comment\nDEBAIT_DATABASE_PATH=runtime/test.sqlite\n")
+
+    update_local_env(
+        env_file,
+        {
+            "DEBAIT_GMAIL_TOKEN": "token123",
+            "DEBAIT_GMAIL_QUARANTINE_LABEL_ID": "Label_999",
+        },
+    )
+
+    content = env_file.read_text()
+    assert "DEBAIT_MODE=local" in content
+    assert "DEBAIT_GMAIL_TOKEN=token123" in content
+    assert "DEBAIT_GMAIL_QUARANTINE_LABEL_ID=Label_999" in content
+    assert "# Comment" in content
+
+    # Test update existing
+    update_local_env(env_file, {"DEBAIT_GMAIL_TOKEN": "token456"})
+    content2 = env_file.read_text()
+    assert "DEBAIT_GMAIL_TOKEN=token456" in content2
+    assert "DEBAIT_GMAIL_TOKEN=token123" not in content2
