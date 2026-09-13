@@ -331,7 +331,7 @@ DeBait's tests and campaigns cover:
 
 ## 05. Demo video
 
-> 🎥 **2-minute demo:** [Watch the DeBait demo](PASTE_DEMO_VIDEO_URL_HERE)
+> 🎥 **2-minute demo:** [[Watch the DeBait demo](PASTE_DEMO_VIDEO_URL_HERE)](https://youtu.be/rSMngYxV_Tg)
 
 ---
 
