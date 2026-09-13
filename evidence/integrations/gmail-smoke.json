@@ -1,0 +1,34 @@
+{
+  "provider": "gmail",
+  "mode": "controlled_demo_account",
+  "verification": "independent_gmail_readback",
+  "note": "Both messages resolved by exact subject header to exactly one message each (no ambiguity). On arrival the scam message was already in the quarantined desired state (label present, INBOX absent) from the interrupted prior run, so per instruction it was NOT force-reset; the initial INBOX->quarantine end-state was verified live by independent read-back, and the already-quarantined reconciliation was proven live via the production GmailAdapter.",
+  "handoff": {
+    "initial_transition_observed_in_this_run": false,
+    "initial_state_on_handoff": "already_quarantined",
+    "independent_readback_verified": true,
+    "already_quarantined_reconciliation": true,
+    "duplicate_modify_requests": 0,
+    "control_message_unchanged": true
+  },
+  "scam_message": {
+    "exact_subject_match": true,
+    "before_inbox": false,
+    "before_quarantined": true,
+    "after_inbox": false,
+    "after_quarantined": true
+  },
+  "control_message": {
+    "exact_subject_match": true,
+    "before_inbox": true,
+    "before_quarantined": false,
+    "unchanged": true
+  },
+  "already_quarantined_reconciliation": {
+    "passed": true,
+    "acknowledged": true,
+    "modify_mutations": 0,
+    "duplicate_logical_effect": false,
+    "control_unchanged": true
+  }
+}
