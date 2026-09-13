@@ -46,13 +46,14 @@ In a paired fresh-model experiment with the **same two permitted reads**, GPT-5.
 
 ## Architecture
 
-```
+```mermaid
 flowchart TB
-    subgraph APPS[External apps]
-        G[Gmail\nread + quarantine]
-        T[Telegram\nread + delete message + remove attacker]
-        B[Browserbase\nmanaged session + bounded web evidence + terminate]
-        S[Stripe TEST\nread + cancel exact PaymentIntent]
+
+    subgraph APPS["External apps"]
+        G["Gmail<br/>Read + quarantine"]
+        T["Telegram<br/>Read + delete message + remove attacker"]
+        B["Browserbase<br/>Managed session + bounded web evidence + terminate"]
+        S["Stripe TEST<br/>Read + cancel exact PaymentIntent"]
     end
 
     G --> OBS
@@ -60,16 +61,19 @@ flowchart TB
     B --> OBS
     S --> OBS
 
-    OBS[Provider observations] --> STORE[Persistent Scam Episode Graph\nimmutable events · provenance edges · exact resource bindings · consent · action history]
+    OBS["Provider observations"] --> STORE["Persistent Scam Episode Graph<br/>Immutable events · provenance edges · exact resource bindings<br/>consent · action history"]
 
-    STORE --> LOOP[Agent loop]
-    LOOP --> MODEL[GPT-5.6 Luna\nstructured assessment\nsignals · contradictions · missing evidence · bounded next read\nNO WRITE TOOLS]
+    STORE --> LOOP["Agent loop"]
 
-    MODEL -->|authorized next read| LOOP
-    MODEL --> GATE[Semantic evidence gate\n3 required signal classes ≥ 0.60\n≥ 2 trusted evidence events across ≥ 2 providers]
+    LOOP --> MODEL["GPT-5.6 Luna<br/>Structured assessment<br/>signals · contradictions · missing evidence · bounded next read<br/><b>NO WRITE TOOLS</b>"]
 
-    GATE --> POLICY[Deterministic authorization\nexact target binding · consent scope · payment state]
-    POLICY --> QUEUE[Durable broker / worker\nidempotent action IDs · retry / reconciliation]
+    MODEL -->|"Authorized next read"| LOOP
+
+    MODEL --> GATE["Semantic evidence gate<br/>3 required signal classes >= 0.60<br/>At least 2 trusted evidence events across at least 2 providers"]
+
+    GATE --> POLICY["Deterministic authorization<br/>Exact target binding · consent scope · payment state"]
+
+    POLICY --> QUEUE["Durable broker / worker<br/>Idempotent action IDs · retry · reconciliation"]
 
     QUEUE --> G
     QUEUE --> T
@@ -81,10 +85,11 @@ flowchart TB
     B --> VERIFY
     S --> VERIFY
 
-    VERIFY[Independent provider verification\n+ reconciliation] --> STORE
-    VERIFY --> STATE[Terminal world state\nCONTAINED · PARTIALLY_CONTAINED\nPREVENTION_FAILED · REVIEW_REQUIRED]
+    VERIFY["Independent provider verification<br/>+ reconciliation"] --> STORE
 
-    CONTROL[Equal-value legitimate Stripe control\nobserve-only / non-actionable] -. protected control .-> S
+    VERIFY --> STATE["Terminal world state<br/>CONTAINED · PARTIALLY_CONTAINED<br/>PREVENTION_FAILED · REVIEW_REQUIRED"]
+
+    CONTROL["Equal-value legitimate Stripe control<br/>Observe-only / non-actionable"] -.->|"Protected control"| S
 ```
 
 ### Trust boundary
