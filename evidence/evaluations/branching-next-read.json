@@ -1,0 +1,25 @@
+{
+  "experiment": "branching-next-read",
+  "claim": "In a paired fresh-model test with the same two permitted reads, GPT-5.6 Luna selected Browserbase when the missing payment evidence was on the web, and Gmail when the information state pointed to email.",
+  "model": "gpt-5.6-luna",
+  "reasoning_mode": "fresh_model",
+  "cases": [
+    {
+      "scenario": "branch_payment_on_web",
+      "missing_information": "payment-coercion instruction is on a linked web page",
+      "authorized_reads": ["browserbase", "gmail"],
+      "first_selected_read": "browserbase"
+    },
+    {
+      "scenario": "branch_payment_in_email",
+      "missing_information": "payment-coercion instruction is in a follow-up email",
+      "authorized_reads": ["browserbase", "gmail"],
+      "first_selected_read": "gmail"
+    }
+  ],
+  "runs_per_case": 1,
+  "reruns": 0,
+  "total_assess_calls": 10,
+  "total_cost_usd_approx": 0.0051,
+  "notes": "Two episode runs (one per case), no retries. Both cases presented the same two authorized reads bound to the same episode; the useful next read changed with the information state and the model matched it. Payment origin stayed bound through Browserbase in both cases (provenance rule unchanged). No API keys, addresses, private identifiers, or raw traces are included."
+}
