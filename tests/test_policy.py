@@ -1,4 +1,24 @@
-from debait.protection.policy import PolicyContext, Target, decide
+from datetime import datetime, timezone
+
+from debait.episodes.models import Event
+from debait.protection.policy import PolicyContext, Target, assess_semantic_evidence, decide
+from debait.reasoning.schema import Assessment, Signal
+
+
+def evidence(event_id, provider, *, provider_event_id=None):
+    return Event(
+        event_id=event_id,
+        provider=provider,
+        provider_event_id=provider_event_id or event_id,
+        episode_id="sc1",
+        observed_at=datetime.now(timezone.utc),
+        received_at=datetime.now(timezone.utc),
+        payload={"text": "untrusted evidence"},
+    )
+
+
+def assessment(*signals):
+    return Assessment(episode_id="sc1", signals=list(signals))
 
 
 def ctx(**changes):
@@ -36,3 +56,69 @@ def test_learning_phase_cannot_dispatch_payment_actions():
     c = ctx(payment_state="requires_confirmation")
     c.phase = "LEARNING"
     assert decide(c).actions == []
+
+
+def test_low_confidence_required_signals_cannot_authorize_intervention():
+    events = [evidence("call", "twilio"), evidence("chat", "telegram"), evidence("page", "browserbase")]
+    result = assess_semantic_evidence(
+        assessment(
+            Signal(kind="bank_claim", confidence=0.30, evidence_ids=["call"]),
+            Signal(kind="secrecy", confidence=0.35, evidence_ids=["chat"]),
+            Signal(kind="payment_coercion", confidence=0.25, evidence_ids=["page"]),
+        ),
+        events,
+    )
+
+    assert result.sufficient is False
+    assert result.low_confidence_kinds == ["bank_claim", "payment_coercion", "secrecy"]
+
+
+def test_high_confidence_required_signals_with_diverse_trusted_evidence_are_sufficient():
+    events = [evidence("call", "twilio"), evidence("chat", "telegram"), evidence("page", "browserbase")]
+    result = assess_semantic_evidence(
+        assessment(
+            Signal(kind="bank_claim", confidence=0.62, evidence_ids=["call"]),
+            Signal(kind="secrecy", confidence=0.92, evidence_ids=["chat"]),
+            Signal(kind="payment_coercion", confidence=0.93, evidence_ids=["page"]),
+        ),
+        events,
+    )
+
+    assert result.sufficient is True
+    assert result.independent_event_count == 3
+    assert result.independent_provider_count == 3
+
+
+def test_one_untrusted_page_cannot_supply_all_semantic_authority():
+    events = [evidence("page", "browserbase")]
+    result = assess_semantic_evidence(
+        assessment(
+            Signal(kind="bank_claim", confidence=1.0, evidence_ids=["page"]),
+            Signal(kind="secrecy", confidence=1.0, evidence_ids=["page"]),
+            Signal(kind="payment_coercion", confidence=1.0, evidence_ids=["page"]),
+        ),
+        events,
+    )
+
+    assert result.sufficient is False
+    assert result.independent_event_count == 1
+    assert result.independent_provider_count == 1
+
+
+def test_duplicate_representations_of_one_artifact_do_not_count_as_corroboration():
+    events = [
+        evidence("page-copy-1", "browserbase", provider_event_id="same-page"),
+        evidence("page-copy-2", "browserbase", provider_event_id="same-page"),
+    ]
+    result = assess_semantic_evidence(
+        assessment(
+            Signal(kind="bank_claim", confidence=1.0, evidence_ids=["page-copy-1"]),
+            Signal(kind="secrecy", confidence=1.0, evidence_ids=["page-copy-2"]),
+            Signal(kind="payment_coercion", confidence=1.0, evidence_ids=["page-copy-1", "page-copy-2"]),
+        ),
+        events,
+    )
+
+    assert result.sufficient is False
+    assert result.independent_event_count == 1
+    assert result.independent_provider_count == 1

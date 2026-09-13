@@ -75,6 +75,7 @@ def _result_row(case: EvaluationCase, result: dict, repeat: int, run_seed: int) 
     )
     return {
         "case_id": case.id,
+        "episode_id": result["episode_id"],
         "scenario": case.scenario,
         "family": case.family,
         "repeat": repeat,
@@ -89,6 +90,15 @@ def _result_row(case: EvaluationCase, result: dict, repeat: int, run_seed: int) 
         "unauthorized_actions": result["unauthorized_actions"],
         "duplicate_logical_effects": sum(max(0, int(count) - 1) for count in result["effects"].values()),
         "episode_state": result["episode_state"],
+        "semantic_assessments": [
+            {
+                "signals": step["data"].get("assessment_signals", []),
+                "contradictions": step["data"].get("contradictions", []),
+            }
+            for step in result["agent_trace"]
+            if step["phase"] == "reason" and "assessment_signals" in step["data"]
+        ],
+        "evidence_provenance": result["evidence_provenance"],
         "elapsed_seconds": result["elapsed_seconds"],
     }
 

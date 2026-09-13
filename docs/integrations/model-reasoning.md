@@ -12,4 +12,14 @@ Validated extractions are cached durably by a SHA-256 digest of the canonical ev
 
 The model returns evidence-backed signals, contradictions, missing evidence and an optional permitted next-read request. It receives attacker content only as evidence data. Returned episode IDs and evidence citations must match the supplied episode; out-of-scope reads are rejected. No model output can create resource bindings or authorize a financial operation.
 
+Autonomous intervention applies a deterministic semantic gate after assessment validation. Every required signal class must have confidence of at least `0.60`, and the qualifying citations must resolve to at least two canonical persisted events across at least two trusted external providers. Canonical identity is `(provider, provider_event_id)`, so repeated citations or duplicate representations of one artifact cannot create corroboration. Driver and Hunter records do not count as independent external surfaces. The `0.60` prototype threshold was selected from a one-repeat, 48-case fresh-model calibration run: benign signal confidence reached at most `0.35`, while `0.60` preserved every episode that satisfied the previous label-only authorization rule; the next tested cutoff, `0.65`, routed one additional recoverable attack to review. This authored fixture sample is limited and the threshold must be recalibrated before production use.
+
+Evaluation reports retain structured signal confidences, evidence citations and sanitized provider provenance for each reasoning step. To rerun the calibration without placing a key in the command or repository, set `DEBAIT_OPENAI_KEY` in an ignored `.env` and run:
+
+```sh
+uv run debait eval evals/manifests/full-campaign.json --workspace runtime/calibration --repeats 1 --seed 13 --reasoning-mode fresh_model
+```
+
+Insufficient confidence or corroboration never reaches the action queue. Once bounded evidence gathering is exhausted, the existing policy sends the episode to `REVIEW_REQUIRED` with zero newly authorized writes.
+
 `payment_target` resolves only an existing account-bound Stripe object with an observed origin edge from messaging or managed browsing. Equal amounts, uncertain edges and another episode cannot establish this relationship. Observer integrations remain responsible for authenticating the source of stored events and origin edges.

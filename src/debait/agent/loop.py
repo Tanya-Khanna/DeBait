@@ -21,7 +21,7 @@ from debait.episodes.linking import payment_target
 from debait.episodes.models import Edge, Event
 from debait.episodes.store import EpisodeStore
 from debait.protection.broker import Action
-from debait.protection.policy import PolicyContext, Target, decide
+from debait.protection.policy import PolicyContext, Target, assess_semantic_evidence, decide
 from debait.protection.verify import verify_requirements
 from debait.protection.worker import Worker
 from debait.providers.base import Observation
@@ -262,13 +262,17 @@ class ContainmentAgent:
                 escalate = True
                 break
             signals = {signal.kind for signal in assessment.signals}
-            sufficient = REQUIRED_MARKERS <= signals
+            semantic_evidence = assess_semantic_evidence(assessment, events)
+            sufficient = semantic_evidence.sufficient
             self._step(
                 "reason",
                 f"{len(signals)}/{len(REQUIRED_MARKERS)} markers; {'sufficient' if sufficient else 'insufficient'} to intervene",
                 signals=sorted(signals),
+                assessment_signals=[signal.model_dump() for signal in assessment.signals],
+                contradictions=list(assessment.contradictions),
                 missing=assessment.missing_evidence,
                 sufficient=sufficient,
+                semantic_evidence=semantic_evidence.model_dump(),
             )
             if sufficient and self.scam_targets:
                 payment_state = await self._payment_state()
@@ -327,6 +331,22 @@ class ContainmentAgent:
                     resource=choice,
                 )
                 continue
+            if REQUIRED_MARKERS <= signals and not sufficient:
+                decision = decide(
+                    PolicyContext(
+                        phase="HIGH_RISK",
+                        sufficient_evidence=False,
+                        consent_valid=True,
+                        trusted_targets=list(self.scam_targets),
+                    )
+                )
+                escalate = decision.next_state == "REVIEW_REQUIRED"
+                self._step(
+                    "decide",
+                    "Policy withheld action: " + semantic_evidence.reason,
+                    semantic_evidence=semantic_evidence.model_dump(),
+                    actions=[],
+                )
             break
         state = self._finalize_state(signals, escalate)
         self._step("stop", f"Episode {state}", state=state)

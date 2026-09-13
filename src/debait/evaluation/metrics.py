@@ -36,6 +36,7 @@ def score(results: list[dict]) -> dict:
         "benign_count": len(benign),
         "benign_uninterrupted": len(benign_uninterrupted),
         "false_financial_interventions": sum(bool(row["financial_intervention"]) for row in benign),
+        "review_required": sum(row.get("episode_state") == "REVIEW_REQUIRED" for row in results),
         "incorrect_final_states": sum(not row["correct"] for row in results),
         "unauthorized_effects": sum(int(row["unauthorized_actions"]) for row in results),
         "duplicate_logical_effects": sum(int(row["duplicate_logical_effects"]) for row in results),

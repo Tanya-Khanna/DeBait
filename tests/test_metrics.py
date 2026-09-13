@@ -13,6 +13,7 @@ def test_metrics_use_explicit_attack_and_benign_denominators():
             "unauthorized_actions": 0,
             "duplicate_logical_effects": 0,
             "elapsed_seconds": 1.0,
+            "episode_state": "CONTAINED",
         },
         {
             "case_id": "benign-1",
@@ -24,6 +25,7 @@ def test_metrics_use_explicit_attack_and_benign_denominators():
             "unauthorized_actions": 0,
             "duplicate_logical_effects": 0,
             "elapsed_seconds": 2.0,
+            "episode_state": "REVIEW_REQUIRED",
         },
     ]
 
@@ -37,5 +39,6 @@ def test_metrics_use_explicit_attack_and_benign_denominators():
     assert metrics["recoverable_attacks_contained"] == 1
     assert metrics["benign_count"] == 1
     assert metrics["false_financial_interventions"] == 1
+    assert metrics["review_required"] == 1
     assert metrics["unauthorized_effects"] == 0
     assert metrics["median_containment_seconds"] == 1.0

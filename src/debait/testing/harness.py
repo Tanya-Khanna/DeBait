@@ -105,6 +105,13 @@ async def _run(case, workspace, seed, database_path=None, reasoning_mode="fixtur
         "verification": {k: v.level for k, v in observations.items()},
         "actions": store.action_history(episode_id),
         "agent_trace": [step.model_dump() for step in trace],
+        "evidence_provenance": {
+            event.event_id: {
+                "provider": event.provider,
+                "provider_event_id": event.provider_event_id,
+            }
+            for event in store.events(episode_id)
+        },
         "iterations": sum(1 for step in trace if step.phase == "reason"),
         "unrelated_resource_diffs": [k for k in controls if initial[k] != world.states[k]],
         "acted_providers": sorted({k.split(".")[0] for k in world.effects}),

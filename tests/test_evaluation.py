@@ -56,6 +56,18 @@ def test_evaluation_exports_measured_local_report(tmp_path):
     exported = json.loads(report.output_path.read_text())
     assert exported["metrics"] == report.metrics
     assert {row["repeat"] for row in exported["results"]} == {0, 1}
+    scam_row = next(row for row in exported["results"] if row["case_id"] == "scam-chain")
+    assessments = scam_row["semantic_assessments"]
+    assert assessments
+    assert {
+        (signal["kind"], signal["confidence"], tuple(signal["evidence_ids"]))
+        for assessment in assessments
+        for signal in assessment["signals"]
+    } >= {
+        ("bank_claim", 1.0, (scam_row["episode_id"] + ":scam_call",)),
+        ("secrecy", 1.0, (scam_row["episode_id"] + ":scam_message",)),
+        ("payment_coercion", 1.0, (scam_row["episode_id"] + ":scam_browser",)),
+    }
 
 
 def test_evaluation_cli_runs_reviewed_manifest(tmp_path):
