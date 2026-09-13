@@ -1,0 +1,97 @@
+{
+  "id": "debait-five-surface-reliability-v1",
+  "version": "1",
+  "cases": [
+    {
+      "id": "five-surface-full-scam",
+      "scenario": "five_app_gmail",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-benign-lookalike",
+      "scenario": "five_surface_benign",
+      "family": "benign",
+      "expected": {
+        "episode_state": "OBSERVING",
+        "world": {
+          "scam_email": "inbox",
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-prompt-injection",
+      "scenario": "five_surface_injection",
+      "family": "adversarial",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-stripe-response-lost",
+      "scenario": "five_surface_stripe_lost",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-telegram-proof-missing",
+      "scenario": "five_surface_ack_only",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PARTIALLY_CONTAINED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "canceled",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-payment-already-settled",
+      "scenario": "five_surface_settled",
+      "family": "integration_fault",
+      "expected": {
+        "episode_state": "PREVENTION_FAILED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "succeeded",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    },
+    {
+      "id": "five-surface-no-payment",
+      "scenario": "five_surface_no_payment",
+      "family": "scam",
+      "expected": {
+        "episode_state": "CONTAINED",
+        "world": {
+          "scam_email": "quarantined",
+          "pi_scam": "requires_confirmation",
+          "pi_unrelated": "requires_confirmation"
+        }
+      }
+    }
+  ]
+}

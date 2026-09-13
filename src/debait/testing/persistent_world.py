@@ -51,6 +51,9 @@ class PersistentFixtureWorld:
 
     async def act(self, action):
         transitions = {
+            # Gmail quarantine parity with FixtureWorld: quarantining moves the message
+            # out of the inbox, persists across restart, and stays idempotent by action id.
+            "quarantine": ("gmail", {"inbox"}, "quarantined"),
             "cancel": ("stripe", {"requires_confirmation", "requires_capture"}, "canceled"),
             "end": ("twilio", {"in-progress"}, "completed"),
             "delete": ("telegram", {"present"}, "removed"),

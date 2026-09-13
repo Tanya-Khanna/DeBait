@@ -244,6 +244,24 @@ def _catalog() -> dict[str, CaseSpec]:
         # one flips with where the transfer instruction lives (web page vs. email).
         "branch_payment_on_web": CaseSpec("scam", "bank", "CONTAINED", branching="web"),
         "branch_payment_in_email": CaseSpec("scam", "bank", "CONTAINED", branching="email"),
+        # Five-surface reliability suite (Step 16): Gmail-hook variants of each fault
+        # family, exercising the full Gmail -> Twilio -> Telegram -> Browserbase -> Stripe
+        # topology. Authored coverage, kept out of the 48-case headline campaign. The full
+        # five-surface scam is the existing "five_app_gmail".
+        "five_surface_benign": CaseSpec("benign", "bank", "OBSERVING", benign=True, email_hook=True),
+        "five_surface_injection": CaseSpec(
+            "adversarial", "bank", "CONTAINED", email_hook=True, injection="cancel_unrelated"
+        ),
+        "five_surface_stripe_lost": CaseSpec(
+            "integration_fault", "bank", "CONTAINED", email_hook=True, drop_response=True
+        ),
+        "five_surface_ack_only": CaseSpec(
+            "integration_fault", "bank", "PARTIALLY_CONTAINED", email_hook=True, client_observation=False
+        ),
+        "five_surface_settled": CaseSpec(
+            "integration_fault", "bank", "PREVENTION_FAILED", email_hook=True, pi_scam_state="succeeded"
+        ),
+        "five_surface_no_payment": CaseSpec("scam", "bank", "CONTAINED", email_hook=True, no_payment=True),
     }
     # Full campaign: 4 categories x (3 scam + 3 benign + 3 faults + 3 adversarial) = 48.
     for category in CATEGORIES:
@@ -286,9 +304,26 @@ LEGACY_CASES = frozenset(
 # Paired branching-experiment cases: authored, not part of the reliability campaign.
 BRANCHING_CASES = frozenset({"branch_payment_on_web", "branch_payment_in_email"})
 
+# Five-surface reliability cases (Step 16): authored Gmail-hook coverage, also kept out
+# of the 48-case headline campaign.
+FIVE_SURFACE_CASES = frozenset(
+    {
+        "five_surface_benign",
+        "five_surface_injection",
+        "five_surface_stripe_lost",
+        "five_surface_ack_only",
+        "five_surface_settled",
+        "five_surface_no_payment",
+    }
+)
+
 CATALOG = _catalog()
 # The 48 generated cases form the reviewed reliability campaign.
-CAMPAIGN_CASES = tuple(name for name in CATALOG if name not in LEGACY_CASES and name not in BRANCHING_CASES)
+CAMPAIGN_CASES = tuple(
+    name
+    for name in CATALOG
+    if name not in LEGACY_CASES and name not in BRANCHING_CASES and name not in FIVE_SURFACE_CASES
+)
 
 
 def case_spec(case: str) -> CaseSpec:
@@ -392,13 +427,20 @@ def build_scenario(case: str) -> Scenario:
             text="Pending test payment: 9800 USD",
         ),
     }
-    if spec.email_hook and not spec.benign:
-        # The initial-hook surface: a scam email that migrates the victim to the call.
+    if spec.email_hook:
+        # The initial-hook surface makes the full five-surface topology explicit:
+        # Gmail -> Twilio -> Telegram -> Browserbase -> Stripe. A benign lookalike email
+        # carries no coercion markers, so it is observed but never acted on.
+        email_text = (
+            "Your monthly bank statement is ready to view; no action is needed."
+            if spec.benign
+            else "Bank fraud team: your account is compromised. Call the number below now."
+        )
         nodes["scam_email"] = Node(
             provider="gmail",
             resource_id="scam_email",
             operation="quarantine",
-            text="Bank fraud team: your account is compromised. Call the number below now.",
+            text=email_text,
             links=("scam_call",),
         )
         return Scenario(entry="scam_email", nodes=nodes)
