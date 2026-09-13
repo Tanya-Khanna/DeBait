@@ -3,7 +3,7 @@ name = "debait"
 version = "0.1.0"
 description = "Scoped cross-app protection with verifiable outcomes"
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "pydantic-settings>=2.6,<3", "httpx>=0.27,<1"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "pydantic-settings>=2.6,<3", "httpx>=0.27,<1", "playwright>=1.62,<2"]
 
 [project.scripts]
 debait = "debait.cli:main"
