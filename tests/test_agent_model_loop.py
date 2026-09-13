@@ -68,6 +68,67 @@ def _model_handler(request):
     )
 
 
+def _response_for(request, assessment, *, content_type="output_text", model="test-model"):
+    content = (
+        {"type": "output_text", "text": json.dumps(assessment)}
+        if content_type == "output_text"
+        else {"type": "refusal", "refusal": "Cannot assess"}
+    )
+    return httpx.Response(
+        200,
+        json={
+            "id": "resp-failure-test",
+            "model": model,
+            "status": "completed",
+            "output": [{"type": "message", "role": "assistant", "content": [content]}],
+            "usage": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+        },
+    )
+
+
+def _model_client(store, handler, *, budget_limit=10_000_000):
+    store.set_budget_limit(budget_limit)
+    config = ModelConfig(
+        model="test-model", input_usd_per_million=Decimal("1"), output_usd_per_million=Decimal("2")
+    )
+    return ModelClient(
+        config, SecretStr("local-test-key"), Budget(store), transport=httpx.MockTransport(handler)
+    )
+
+
+def _failure_handler(kind):
+    def handler(request):
+        if kind == "timeout":
+            raise httpx.ReadTimeout("simulated timeout", request=request)
+        if kind == "malformed_response":
+            return httpx.Response(200, content=b"not-json")
+        parsed = json.loads(json.loads(request.content)["input"][0]["content"])
+        event = parsed["events"][0]
+        assessment = {
+            "episode_id": event["episode_id"],
+            "signals": [],
+            "contradictions": [],
+            "missing_evidence": [],
+            "next_read": None,
+        }
+        if kind == "invalid_evidence_reference":
+            assessment["signals"] = [
+                {"kind": "bank_claim", "confidence": 0.9, "evidence_ids": ["invented-event"]}
+            ]
+        if kind == "out_of_scope_read":
+            assessment["next_read"] = {"provider": "stripe", "resource_id": "pi_unrelated"}
+        if kind == "invalid_schema":
+            assessment["signals"] = "not-a-list"
+        return _response_for(
+            request,
+            assessment,
+            content_type="refusal" if kind == "refusal" else "output_text",
+            model="unconfigured-model" if kind == "unknown_model" else "test-model",
+        )
+
+    return handler
+
+
 @pytest.mark.asyncio
 async def test_same_loop_contains_the_episode_with_the_model_reasoner(tmp_path):
     store = EpisodeStore(tmp_path / "db.sqlite")
@@ -116,3 +177,120 @@ async def test_model_cannot_be_steered_to_an_unrelated_payment(tmp_path):
     )
     await agent.run()
     assert world.snapshot()["pi_unrelated"] == "requires_confirmation"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "timeout",
+        "refusal",
+        "malformed_response",
+        "budget_exhaustion",
+        "invalid_evidence_reference",
+        "out_of_scope_read",
+        "invalid_schema",
+        "unknown_model",
+    ],
+)
+async def test_model_failure_stops_agent_in_review_with_zero_new_writes(tmp_path, failure):
+    store = EpisodeStore(tmp_path / "db.sqlite")
+    called = False
+
+    def budget_handler(request):
+        nonlocal called
+        called = True
+        raise AssertionError("Budget-exhausted reasoning reached transport")
+
+    handler = budget_handler if failure == "budget_exhaustion" else _failure_handler(failure)
+    client = _model_client(store, handler, budget_limit=0 if failure == "budget_exhaustion" else 10_000_000)
+    world = FixtureWorld(client_observation=True)
+    agent = ContainmentAgent(
+        store,
+        world,
+        build_scenario("four_app_two_payments"),
+        ModelReasoner(client),
+        episode_id=f"sc-{failure}",
+    )
+
+    trace = await agent.run()
+    snapshot = store.episode_snapshot(f"sc-{failure}")
+
+    assert snapshot["state"] == "REVIEW_REQUIRED"
+    assert len(snapshot["events"]) == 1
+    assert snapshot["events"][0]["payload"]["resource_id"] == "scam_call"
+    assert store.action_history(f"sc-{failure}") == []
+    assert world.effects == {}
+    assert called is False
+    failure_step = next(
+        step for step in snapshot["agent_trace"] if step["data"].get("outcome") == "model_unavailable"
+    )
+    assert failure_step["data"]["reason_code"] == "model_reasoning_unavailable"
+    assert failure_step["data"]["error_type"] == "ModelUnavailable"
+    assert failure_step["data"]["newly_authorized_actions"] == 0
+    expected_detail = {
+        "timeout": "transport or assessment validation",
+        "refusal": "refused",
+        "malformed_response": "transport or assessment validation",
+        "budget_exhaustion": "budget",
+        "invalid_evidence_reference": "transport or assessment validation",
+        "out_of_scope_read": "transport or assessment validation",
+        "invalid_schema": "transport or assessment validation",
+        "unknown_model": "no matching configured price",
+    }[failure]
+    assert expected_detail in failure_step["data"]["detail"].lower()
+    assert trace[-1].phase == "stop" and trace[-1].data["state"] == "REVIEW_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_later_model_failure_preserves_verified_action_without_duplicate_or_false_containment(tmp_path):
+    store = EpisodeStore(tmp_path / "db.sqlite")
+    calls = 0
+
+    def handler(request):
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise httpx.ReadTimeout("later reasoning failed", request=request)
+        parsed = json.loads(json.loads(request.content)["input"][0]["content"])
+        event = parsed["events"][0]
+        assessment = {
+            "episode_id": event["episode_id"],
+            "signals": [
+                {"kind": kind, "confidence": 0.9, "evidence_ids": [event["event_id"]]}
+                for kind in sorted(_MARKERS)
+            ],
+            "contradictions": [],
+            "missing_evidence": [],
+            "next_read": None,
+        }
+        return _response_for(request, assessment)
+
+    client = _model_client(store, handler)
+    world = FixtureWorld(client_observation=True)
+    agent = ContainmentAgent(
+        store,
+        world,
+        build_scenario("four_app_two_payments"),
+        ModelReasoner(client),
+        episode_id="sc-later-failure",
+    )
+
+    await agent.run()
+    snapshot = store.episode_snapshot("sc-later-failure")
+    actions = store.action_history("sc-later-failure")
+
+    assert calls == 2
+    assert snapshot["state"] == "REVIEW_REQUIRED"
+    observed_resources = {event["payload"]["resource_id"] for event in snapshot["events"]}
+    assert {"scam_call", "scam_message"} <= observed_resources
+    assert len(actions) == 1
+    assert actions[0]["target"]["resource_id"] == "scam_call"
+    assert actions[0]["observations"][-1]["state"] == "completed"
+    assert world.effects == {"twilio.end:scam_call": 1}
+    with store.connection() as db:
+        status = db.execute(
+            "SELECT status FROM action_jobs WHERE action_id=?", (actions[0]["action_id"],)
+        ).fetchone()["status"]
+    assert status == "verified"
+    assert snapshot["agent_trace"][-1]["data"]["state"] == "REVIEW_REQUIRED"

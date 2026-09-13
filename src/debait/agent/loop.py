@@ -25,6 +25,7 @@ from debait.protection.policy import PolicyContext, Target, decide
 from debait.protection.verify import verify_requirements
 from debait.protection.worker import Worker
 from debait.providers.base import Observation
+from debait.reasoning.client import ModelUnavailable
 
 
 class AgentStep(BaseModel):
@@ -243,7 +244,23 @@ class ContainmentAgent:
             events = self.store.events(self.episode_id)
             pending = self.allowed - self.observed
             allowed_reads = frozenset((self.scenario.provider_of(r), r) for r in pending)
-            assessment = await self.reasoner.assess(events, allowed_reads=allowed_reads)
+            try:
+                assessment = await self.reasoner.assess(events, allowed_reads=allowed_reads)
+            except ModelUnavailable as exc:
+                # A failed semantic step grants no authority. Preserve observed evidence and
+                # any earlier verified effects, then stop before policy or queue dispatch.
+                self.store.set_state(self.episode_id, "REVIEW_REQUIRED")
+                self._step(
+                    "reason",
+                    "Model reasoning unavailable or invalid; autonomous writes withheld",
+                    outcome="model_unavailable",
+                    reason_code="model_reasoning_unavailable",
+                    error_type=type(exc).__name__,
+                    detail=str(exc),
+                    newly_authorized_actions=0,
+                )
+                escalate = True
+                break
             signals = {signal.kind for signal in assessment.signals}
             sufficient = REQUIRED_MARKERS <= signals
             self._step(
