@@ -108,12 +108,12 @@ If evidence, consent, provider state, or verification is insufficient, DeBait do
 
 ## 02. External apps used
 
-| External appWhat DeBait readsScoped actionHow success is checked |                                                                           |                                                                                                |                                                                                                                     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Gmail**                                                        | Exact bound message, labels, subject/snippet/body evidence                | Quarantine the exact scam message by applying the DeBait quarantine label and removing `INBOX` | Independent Gmail read-back verifies label state; unrelated control message remains unchanged                       |
-| **Telegram**                                                     | Exact controlled chat/message plus attacker and protected-user membership | Delete the exact malicious message and remove/ban the controlled attacker                      | Authenticated `deleteMessage` acknowledgement plus independent membership rereads; protected user remains unchanged |
-| **Browserbase**                                                  | Managed session URL and bounded page text                                 | Terminate/release the exact managed session                                                    | Independent Browserbase REST reread verifies terminal `COMPLETED` state                                             |
-| **Stripe TEST**                                                  | Exact bound PaymentIntent state and provenance-linked payment identity    | Cancel the exact scam-linked TEST PaymentIntent                                                | Provider reread verifies cancellation while an equal-value legitimate control remains unchanged                     |
+| External app | What DeBait reads | Scoped action | How success is checked |
+|---|---|---|---|
+| **Gmail** | Exact bound message, labels, subject/snippet/body evidence | Quarantine the exact scam message by applying the DeBait quarantine label and removing `INBOX` | Independent Gmail read-back verifies label state; unrelated control message remains unchanged |
+| **Telegram** | Exact controlled chat/message plus attacker and protected-user membership | Delete the exact malicious message and remove/ban the controlled attacker | Authenticated `deleteMessage` acknowledgement plus independent membership rereads; protected user remains unchanged |
+| **Browserbase** | Managed session URL and bounded page text | Terminate/release the exact managed session | Independent Browserbase REST reread verifies terminal `COMPLETED` state |
+| **Stripe TEST** | Exact bound PaymentIntent state and provenance-linked payment identity | Cancel the exact scam-linked TEST PaymentIntent | Provider reread verifies cancellation while an equal-value legitimate control remains unchanged |
 
 ### Least-privilege design
 
