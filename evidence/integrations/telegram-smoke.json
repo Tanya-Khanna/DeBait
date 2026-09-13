@@ -1,0 +1,15 @@
+{
+  "provider": "telegram",
+  "controlled_human_attacker": true,
+  "exact_chat_bound": true,
+  "exact_message_bound": true,
+  "exact_attacker_bound": true,
+  "protected_user_bound": true,
+  "message_deleted": true,
+  "message_delete_verification": "authenticated deleteMessage acknowledgement; Bot API has no per-message readback",
+  "attacker_removed_or_banned": true,
+  "protected_user_unchanged": true,
+  "guard_remains_admin": true,
+  "arbitrary_target_expansion": false,
+  "external_verification_performed": true
+}
