@@ -10,6 +10,12 @@ from debait.driver.app import open_binding_store
 from debait.driver.browser_sessions import run_browserbase_smoke
 from debait.driver.telegram_conversation import run_telegram_smoke
 from debait.evaluation.runner import evaluate
+from debait.live_config import (
+    READINESS_ORDER,
+    build_live_runtime,
+    configured_bindings,
+    live_readiness,
+)
 from debait.settings import Settings
 from debait.testing.harness import CASES, run_case
 
@@ -48,6 +54,10 @@ def main():
     telegram_smoke = sub.add_parser("telegram-smoke")
     telegram_smoke.add_argument("--confirm-live-test", action="store_true")
     telegram_smoke.add_argument("--workspace", type=Path, default=Path("runtime/integrations"))
+    live = sub.add_parser("demo-live")
+    live_mode = live.add_mutually_exclusive_group(required=True)
+    live_mode.add_argument("--dry-run", action="store_true")
+    live_mode.add_argument("--confirm-live-test", action="store_true")
     args = parser.parse_args()
     if args.command == "serve":
         uvicorn.run("debait.app:create_app", factory=True, host="127.0.0.1", port=args.port)
@@ -104,6 +114,41 @@ def main():
         output_path = args.workspace / f"{run_id}.json"
         output_path.write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps({**report, "output_path": str(output_path)}, indent=2))
+    elif args.command == "demo-live":
+        settings = Settings()
+        readiness = live_readiness(settings)
+        for name in READINESS_ORDER:
+            print(f"{name:<13} {'READY' if readiness[name] else 'NOT CONFIGURED'}")
+        if args.dry_run:
+            print("provider_mutations: 0")
+        bindings = configured_bindings(settings)
+        print(
+            json.dumps(
+                {
+                    "episode_id": settings.live_episode_id,
+                    "bindings": bindings,
+                    "eligible_actions_if_all_gates_pass": [
+                        f"{item['provider']}.{item['operation']}:{item['resource_id']}"
+                        for item in bindings
+                        if item.get("role") != "control"
+                    ],
+                    "provider_mutations": 0 if args.dry_run else "explicitly enabled",
+                    "stripe_mode": "TEST ONLY",
+                },
+                indent=2,
+            )
+        )
+        if args.confirm_live_test:
+            unavailable = [name for name in READINESS_ORDER if not readiness[name]]
+            if unavailable:
+                parser.error("demo-live providers not configured: " + ", ".join(unavailable))
+
+            async def execute_live():
+                runner, control_payment = await build_live_runtime(settings)
+                return await runner.run(control_payment=control_payment)
+
+            result = asyncio.run(execute_live())
+            print(result.model_dump_json(indent=2))
     elif args.command in {"driver-bind", "driver-export", "driver-reset"}:
         settings = Settings(
             database_path=args.workspace / "episodes.sqlite",

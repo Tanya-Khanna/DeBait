@@ -118,7 +118,15 @@ class TelegramAdapter:
         if not isinstance(bot, dict) or bot.get("id") != self.config.bot_id or bot.get("is_bot") is not True:
             raise PermissionError("Telegram bot response identity mismatch")
 
-    def record_message_update(self, resource_id: str, evidence_path: str, observed_at: datetime):
+    def record_message_update(
+        self,
+        resource_id: str,
+        evidence_path: str,
+        observed_at: datetime,
+        *,
+        text: str = "",
+        actor_id: int | None = None,
+    ):
         kind, _, _ = self._parse_resource(resource_id)
         if kind != "message" or observed_at.tzinfo is None or not evidence_path:
             raise ValueError("A dated message update and evidence path are required")
@@ -130,6 +138,7 @@ class TelegramAdapter:
             level="provider_event",
             observed_at=observed_at,
             source=evidence_path,
+            details={"text": text[:16384], "actor_id": actor_id},
         )
         self._message_observations[resource_id] = observation
         return observation
@@ -217,4 +226,14 @@ class TelegramAdapter:
             )
         if result is not True:
             raise ProviderStateChanged("Telegram did not acknowledge the scoped operation")
+        if kind == "message":
+            previous = self._message_observations[action.target.resource_id]
+            self._message_observations[action.target.resource_id] = previous.model_copy(
+                update={
+                    "state": "unknown",
+                    "level": "requested",
+                    "observed_at": datetime.now(timezone.utc),
+                    "source": "telegram.delete_acknowledged_without_readback",
+                }
+            )
         return Receipt(request_id=f"telegram:{action.action_id}", acknowledged=True)

@@ -152,6 +152,8 @@ async def run_telegram_smoke(
         msg_resource,
         evidence_path=f"telegram:getUpdates:{run_id}",
         observed_at=datetime.fromtimestamp(scam["date"] or 1, tz=timezone.utc),
+        text=scam["text"],
+        actor_id=scam["from_id"],
     )
 
     delete = await adapter.act(

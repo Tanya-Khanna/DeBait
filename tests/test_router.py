@@ -11,7 +11,7 @@ class FakeAdapter:
         self.acted = []
 
     async def read(self, resource_id):
-        return None
+        return (self.name, resource_id)
 
     async def act(self, action):
         self.acted.append(action.target.provider)
@@ -66,3 +66,20 @@ async def test_router_act_dispatches_to_the_right_adapter():
     router = ProviderRouter({"gmail": g, "stripe": s})
     assert await router.act(_action("stripe")) == "stripe"
     assert s.acted == ["stripe"] and g.acted == []
+
+
+@pytest.mark.asyncio
+async def test_router_read_is_provider_aware_even_when_resource_ids_match():
+    gmail, stripe = FakeAdapter("gmail"), FakeAdapter("stripe")
+    router = ProviderRouter({"gmail": gmail, "stripe": stripe})
+
+    assert await router.read("gmail", "shared") == ("gmail", "shared")
+    assert await router.read("stripe", "shared") == ("stripe", "shared")
+
+
+@pytest.mark.asyncio
+async def test_router_unknown_provider_read_fails_closed():
+    router = ProviderRouter({"gmail": FakeAdapter("gmail")})
+
+    with pytest.raises(PermissionError, match="No adapter"):
+        await router.read("stripe", "shared")

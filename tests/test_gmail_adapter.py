@@ -1,4 +1,5 @@
 import json
+from base64 import urlsafe_b64encode
 
 import httpx
 import pytest
@@ -66,6 +67,27 @@ class FakeGmail:
                         },
                     },
                 )
+            if "format=full" in query:
+                frm, subj, snip = self.meta.get(mid, ("", "", ""))
+                return httpx.Response(
+                    200,
+                    json={
+                        "id": mid,
+                        "labelIds": sorted(self.labels[mid]),
+                        "snippet": snip,
+                        "payload": {
+                            "headers": [
+                                {"name": "From", "value": frm},
+                                {"name": "Subject", "value": subj},
+                            ],
+                            "body": {
+                                "data": urlsafe_b64encode(b"Do not call your bank. Pay the safe account.")
+                                .decode()
+                                .rstrip("=")
+                            },
+                        },
+                    },
+                )
             return httpx.Response(200, json={"id": mid, "labelIds": sorted(self.labels[mid])})
         raise AssertionError(f"unexpected gmail call: {request.method} {path}?{query}")
 
@@ -90,6 +112,16 @@ async def test_read_maps_labels_to_state():
     assert (await a.read("m_scam")).state == "inbox"
     assert (await a.read("m_ctrl")).state == "quarantined"
     assert (await a.read("m_arch")).state == "archived"
+
+
+@pytest.mark.asyncio
+async def test_read_normalizes_exact_message_content_for_live_reasoning():
+    observation = await _adapter(FakeGmail()).read("m_scam")
+
+    assert observation.details["from"] == "Bank <fraud@x>"
+    assert observation.details["subject"] == "Your account has been compromised"
+    assert observation.details["snippet"] == "verify immediately"
+    assert observation.details["body"] == "Do not call your bank. Pay the safe account."
 
 
 @pytest.mark.asyncio

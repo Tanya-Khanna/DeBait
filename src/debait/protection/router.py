@@ -25,5 +25,8 @@ class ProviderRouter:
             raise PermissionError(f"No adapter is registered for provider {provider!r}")
         return adapter
 
+    async def read(self, provider: str, resource_id: str):
+        return await self.for_provider(provider).read(resource_id)
+
     async def act(self, action):
         return await self.for_provider(action.target.provider).act(action)

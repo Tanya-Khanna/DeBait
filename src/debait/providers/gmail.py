@@ -14,6 +14,7 @@ Reliability contract:
 """
 
 import asyncio
+import base64
 import json
 import re
 from datetime import datetime, timezone
@@ -108,21 +109,53 @@ class GmailAdapter:
             return "inbox"
         return "archived"
 
-    async def _retrieve(self, resource_id: str) -> list[str]:
+    async def _retrieve(self, resource_id: str) -> dict:
         resource_id = self._resource(resource_id)
         message = await self._request(
-            "GET", f"/gmail/v1/users/{self._user}/messages/{resource_id}?format=minimal"
+            "GET", f"/gmail/v1/users/{self._user}/messages/{resource_id}?format=full"
         )
         if message.get("id") != resource_id or not isinstance(message.get("labelIds"), list):
             raise PermissionError("Gmail message response identity mismatch")
-        return [str(x) for x in message["labelIds"]]
+        return message
+
+    @staticmethod
+    def _content(message: dict) -> dict:
+        payload = message.get("payload") if isinstance(message.get("payload"), dict) else {}
+        headers = {}
+        for header in payload.get("headers", []):
+            if isinstance(header, dict) and isinstance(header.get("name"), str):
+                headers[header["name"].lower()] = str(header.get("value", ""))
+        bodies = []
+        pending = [payload]
+        while pending:
+            part = pending.pop(0)
+            if not isinstance(part, dict):
+                continue
+            pending.extend(part.get("parts", []))
+            data = part.get("body", {}).get("data")
+            if isinstance(data, str) and data:
+                try:
+                    bodies.append(
+                        base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode(
+                            "utf-8", errors="replace"
+                        )
+                    )
+                except (ValueError, TypeError):
+                    continue
+        return {
+            "from": headers.get("from", ""),
+            "subject": headers.get("subject", ""),
+            "snippet": str(message.get("snippet", "")),
+            "body": "\n".join(bodies)[:32768],
+        }
 
     def _quarantined(self, labels) -> bool:
         labels = set(labels)
         return self.config.quarantine_label_id in labels and "INBOX" not in labels
 
     async def read(self, resource_id: str) -> Observation:
-        labels = await self._retrieve(resource_id)
+        message = await self._retrieve(resource_id)
+        labels = [str(x) for x in message["labelIds"]]
         return Observation(
             provider="gmail",
             resource_id=self._resource(resource_id),
@@ -131,14 +164,14 @@ class GmailAdapter:
             level="read_back",
             observed_at=datetime.now(timezone.utc),
             source="gmail.messages.get",
-            details={"label_ids": labels},
+            details={"label_ids": labels, **self._content(message)},
         )
 
     async def act(self, action: Action) -> Receipt:
         if action.target.provider != "gmail" or action.target.operation != "quarantine":
             raise PermissionError("Gmail adapter only permits reversible quarantine")
         resource_id = self._resource(action.target.resource_id)
-        current = await self._retrieve(resource_id)
+        current = [str(x) for x in (await self._retrieve(resource_id))["labelIds"]]
         # Reconcile: already in the desired state is success, not an error. This makes a
         # lost response after a successful quarantine safe to retry without mutating again.
         if self._quarantined(current):
@@ -151,7 +184,7 @@ class GmailAdapter:
             f"/gmail/v1/users/{self._user}/messages/{resource_id}/modify",
             json_body={"removeLabelIds": ["INBOX"], "addLabelIds": [self.config.quarantine_label_id]},
         )
-        verified = await self._retrieve(resource_id)
+        verified = [str(x) for x in (await self._retrieve(resource_id))["labelIds"]]
         if not self._quarantined(verified):
             raise ProviderStateChanged("Gmail quarantine not confirmed by independent read-back")
         return Receipt(request_id=f"gmail:{action.action_id}", acknowledged=True)

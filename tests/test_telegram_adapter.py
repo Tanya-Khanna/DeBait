@@ -57,15 +57,28 @@ async def test_delete_ack_is_not_read_back_until_client_observes_removal():
 
     client = adapter(handler)
     resource = message_resource(CHAT, 91)
-    client.record_message_update(resource, "event:telegram:update:81", datetime.now(timezone.utc))
+    client.record_message_update(
+        resource,
+        "event:telegram:update:81",
+        datetime.now(timezone.utc),
+        text="Do not call your bank. Open the secure verification page.",
+        actor_id=ATTACKER,
+    )
     before = await client.read(resource)
     receipt = await client.act(action("delete", resource))
     after_ack = await client.read(resource)
+    with pytest.raises(PermissionError, match="observed message evidence"):
+        await client.act(action("delete", resource))
     client_observed = client.record_client_observation(resource, "removed", "capture:telegram:91")
 
     assert before.state == "present" and before.level == "provider_event"
+    assert before.details == {
+        "text": "Do not call your bank. Open the secure verification page.",
+        "actor_id": ATTACKER,
+    }
     assert receipt.acknowledged
-    assert after_ack.state == "present" and after_ack.level == "provider_event"
+    assert after_ack.state == "unknown" and after_ack.level == "requested"
+    assert after_ack.source == "telegram.delete_acknowledged_without_readback"
     assert client_observed.state == "removed" and client_observed.level == "client_observed"
     assert calls == ["getMe", "deleteMessage"]
 
